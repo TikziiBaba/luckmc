@@ -1,25 +1,23 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- DEĞİŞKENLER ---
+    // --- 1. GEREKLİ DEĞİŞKENLERİN TANIMLANMASI ---
     const body = document.body;
     const fadeInWords = document.querySelectorAll('.fade-in-scroll span');
     const featuresSection = document.getElementById('ozellikler');
 
     const totalWords = fadeInWords.length;
     let revealedWordsCount = 0;
-    
-    // Animasyon durumunu takip etmek için bir durum makinesi
-    // 'animating': Giriş animasyonu aktif, kaydırma kilitli.
-    // 'finished': Animasyon bitti, bir sonraki kaydırmayı bekliyor, kaydırma kilitli.
-    // 'unlocked': Kilit açıldı, normal sayfa kaydırması aktif.
-    let lockState = 'animating'; 
-    
-    let lastAnimationTime = 0; // Animasyonun çok hızlı tetiklenmesini engeller
+    let isLocked = true; // Kaydırmanın kilitli olup olmadığını kontrol eder.
+    let lastEventTime = 0; // Çok hızlı kaydırmaları engellemek için.
 
-    // --- ANİMASYON GÜNCELLEME FONKSİYONU ---
-    function updateWordAnimation() {
-        // Her bir kelimeyi (span) kontrol et ve canlandır
+    // Dokunmatik hareketler için başlangıç pozisyonu
+    let touchStartY = 0;
+
+    // --- 2. ÇEKİRDEK ANİMASYON FONKSİYONU ---
+    // Bu fonksiyon, kaç kelimenin görüneceğini günceller.
+    function updateAnimation() {
         fadeInWords.forEach((span, index) => {
+            // Canlanması gereken kelimelere 'revealed' sınıfını ekle.
             if (index < revealedWordsCount) {
                 span.classList.add('revealed');
             } else {
@@ -27,95 +25,93 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Tüm kelimeler canlandı mı?
+        // Animasyon bitti mi?
         if (revealedWordsCount >= totalWords) {
-            if (lockState === 'animating') {
-                lockState = 'finished';
+            // Eğer kilitliyse, kilidi kaldır.
+            if (isLocked) {
+                isLocked = false;
+                body.classList.remove('scroll-locked');
             }
         } else {
-            lockState = 'animating';
-            if (!body.classList.contains('scroll-locked')) {
+            // Animasyon devam ediyorsa, kilidin aktif olduğundan emin ol.
+            if (!isLocked) {
+                isLocked = true;
                 body.classList.add('scroll-locked');
             }
         }
     }
 
-    // --- YENİ: Ortak Kaydırma Mantığı İşleyicisi ---
+    // --- 3. KAYDIRMA İŞLEMCİSİ ---
+    // Bu fonksiyon, hem fare hem de dokunma için ortak mantığı çalıştırır.
     function processScroll(direction) {
-        // Animasyonun çok hızlı ilerlemesini engellemek için bir bekleme süresi koy.
-        const now = Date.now();
-        if (now - lastAnimationTime < 50) { 
-            return;
-        }
-        lastAnimationTime = now;
+        if (!isLocked) return; // Kilit açıkken hiçbir şey yapma.
 
-        if (lockState === 'animating') {
-            if (direction === 'down') { // Aşağı kaydırma / Yukarı kaydırma (parmak)
-                if (revealedWordsCount < totalWords) revealedWordsCount++;
-            } else { // Yukarı kaydırma / Aşağı kaydırma (parmak)
-                if (revealedWordsCount > 0) revealedWordsCount--;
+        // Aşağı kaydırma hareketi
+        if (direction === 'down') {
+            if (revealedWordsCount < totalWords) {
+                revealedWordsCount++;
             }
-            updateWordAnimation();
+        }
+        // Yukarı kaydırma hareketi
+        else if (direction === 'up') {
+            if (revealedWordsCount > 0) {
+                revealedWordsCount--;
+            }
+        }
+        
+        updateAnimation();
+    }
+
+    // --- 4. OLAY DİNLEYİCİLERİ (EVENT LISTENERS) ---
+
+    // Fare Tekerleği için
+    function handleWheel(event) {
+        if (!isLocked) return;
+        event.preventDefault(); // Kilitliyken sayfanın kaymasını engelle.
+
+        const now = Date.now();
+        if (now - lastEventTime < 100) return; // Çok hızlı kaydırmaları yoksay.
+        lastEventTime = now;
+
+        const direction = event.deltaY > 0 ? 'down' : 'up';
+        processScroll(direction);
+    }
+
+    // Dokunmatik Başlangıcı için
+    function handleTouchStart(event) {
+        if (!isLocked) return;
+        touchStartY = event.touches[0].clientY;
+    }
+
+    // Dokunmatik Bitişi için
+    function handleTouchEnd(event) {
+        if (!isLocked) return;
+
+        // Dokunmanın bittiği Y pozisyonunu al.
+        const touchEndY = event.changedTouches[0].clientY;
+        const deltaY = touchStartY - touchEndY;
+
+        // Yeterince uzun bir kaydırma hareketi mi?
+        if (Math.abs(deltaY) > 30) {
+            const direction = deltaY > 0 ? 'down' : 'up';
+            processScroll(direction);
         }
     }
 
-    // --- FARE TEKERLEĞİ OLAY YÖNETİCİSİ ---
-    window.addEventListener('wheel', (event) => {
-        if (lockState === 'unlocked') return;
-        event.preventDefault();
-
-        if (lockState === 'finished') {
-            lockState = 'unlocked';
-            body.classList.remove('scroll-locked');
-            return;
-        }
-        
-        const direction = event.deltaY > 0 ? 'down' : 'up';
-        processScroll(direction);
-
-    }, { passive: false });
-
-    // --- YENİ: DOKUNMATİK EKRAN OLAY YÖNETİCİLERİ ---
-    let touchStartY = 0;
-    let touchEndY = 0;
-
-    window.addEventListener('touchstart', (event) => {
-        if (lockState === 'unlocked') return;
-        // Dokunmanın başlangıç Y pozisyonunu kaydet
-        touchStartY = event.touches[0].clientY;
-    }, { passive: false });
-
-    window.addEventListener('touchmove', (event) => {
-        if (lockState === 'unlocked') return;
-        event.preventDefault(); // Dokunmatik kaydırmayı her zaman engelle
-        // Dokunmanın sonlandığı Y pozisyonunu sürekli güncelle
-        touchEndY = event.touches[0].clientY;
-    }, { passive: false });
-
-    window.addEventListener('touchend', () => {
-        if (lockState === 'unlocked') return;
-
-        // Eğer animasyon bittiyse, bu ilk dokunma kilidi açar.
-        if (lockState === 'finished') {
-            lockState = 'unlocked';
-            body.classList.remove('scroll-locked');
-            return;
-        }
-
-        // Başlangıç ve bitiş arasındaki farkı hesapla
-        const touchDelta = touchStartY - touchEndY;
-        
-        // Dokunma mesafesi yeterince büyükse (bir "swipe" ise) işlemi tetikle
-        if (Math.abs(touchDelta) > 50) { 
-            const direction = touchDelta > 0 ? 'down' : 'up';
-            processScroll(direction);
-        }
+    // Olay dinleyicilerini ekle
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
+    // Dokunmatik kaydırma sırasında sayfanın hareketini engelle
+    window.addEventListener('touchmove', (e) => {
+        if (isLocked) e.preventDefault();
     }, { passive: false });
 
 
-    // Sayfa ilk yüklendiğinde animasyonun başlangıç durumunu ayarla
+    // --- 5. BAŞLANGIÇ ---
+    // Sayfa ilk yüklendiğinde durumu ayarla.
     body.classList.add('scroll-locked');
-    updateWordAnimation();
+    updateAnimation();
 
 
     // --- IP ADRESİ KOPYALAMA (DEĞİŞİKLİK YOK) ---
