@@ -1,0 +1,318 @@
+/* ==========================================================================
+   1. Değişkenler ve Temel Kurulum
+   ========================================================================== */
+
+:root {
+    --dark-bg: #1a2e1a; /* Koyu Orman Yeşili */
+    --primary-green: #6a994e; /* Doğal Yeşil */
+    --light-text: #f2e8cf; /* Krem Rengi */
+    --dark-text: #a3b18a; /* Soluk Yeşil */
+    --card-bg: rgba(42, 68, 42, 0.5);
+    --card-border: rgba(106, 153, 78, 0.3);
+}
+
+* { 
+    margin: 0; 
+    padding: 0; 
+    box-sizing: border-box; 
+}
+
+html { 
+    scroll-behavior: smooth; 
+}
+
+body {
+    background-color: var(--dark-bg);
+    color: var(--light-text);
+    font-family: 'Nunito Sans', sans-serif;
+    overflow-x: hidden; /* Yatay kaydırmayı her zaman engelle */
+}
+
+/* JavaScript ile eklenecek bu sınıf, animasyon sırasında kaydırmayı kilitler */
+body.scroll-locked {
+    overflow-y: hidden;
+}
+
+/* ==========================================================================
+   2. Arkaplan ve Header
+   ========================================================================== */
+
+.background-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: linear-gradient(rgba(26, 46, 26, 0.9), rgba(26, 46, 26, 0.9)), 
+                      url(https://www.transparenttextures.com/patterns/natural-paper.png);
+    z-index: -1;
+    opacity: 0.5;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 50px;
+    position: fixed;
+    width: 100%;
+    background: rgba(26, 46, 26, 0.5);
+    backdrop-filter: blur(10px);
+    z-index: 10;
+    border-bottom: 1px solid var(--card-border);
+}
+
+.logo {
+    font-family: 'Raleway', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.logo i { color: var(--primary-green); }
+.logo span { color: var(--primary-green); }
+
+nav a {
+    color: var(--light-text);
+    text-decoration: none;
+    margin-left: 30px;
+    font-weight: 700;
+    transition: color 0.3s ease;
+}
+nav a:hover { color: var(--primary-green); }
+
+
+/* ==========================================================================
+   3. Giriş (Hero) Bölümü ve Animasyonlar
+   ========================================================================== */
+
+.hero {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    padding: 0 20px;
+}
+
+.hero-content {
+    max-width: 800px;
+}
+
+/* Kelime animasyonu için her bir kelimeyi (span) hedef alan stil */
+.fade-in-scroll span {
+    display: inline-block; /* Her kelimeye ayrı ayrı etki edebilmek için */
+    opacity: 0.1;
+    filter: blur(5px);
+    transition: opacity 0.5s ease-out, filter 0.5s ease-out;
+}
+
+/* JavaScript ile eklenecek bu sınıf, kelimeyi görünür hale getirir */
+.fade-in-scroll span.revealed {
+    opacity: 1;
+    filter: blur(0);
+}
+
+.hero h1 {
+    font-family: 'Raleway', sans-serif;
+    font-size: 3.5rem;
+    color: white;
+    margin-bottom: 20px;
+    line-height: 1.2;
+}
+
+.hero p {
+    font-size: 1.2rem;
+    color: var(--dark-text);
+    margin-bottom: 40px;
+}
+
+.ip-copy-wrapper {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    display: inline-flex;
+    align-items: center;
+    border-radius: 8px;
+    padding: 10px;
+    backdrop-filter: blur(5px);
+}
+
+#server-ip {
+    font-family: 'Nunito Sans', sans-serif;
+    font-size: 1.2rem;
+    padding: 0 20px;
+    color: var(--light-text);
+}
+
+#copy-button {
+    background: var(--primary-green);
+    color: var(--dark-bg);
+    border: none;
+    padding: 12px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+#copy-button:hover {
+    background-color: white;
+    transform: scale(1.1);
+}
+
+.scroll-indicator {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--dark-text);
+    text-align: center;
+    animation: bounce 2s infinite;
+}
+.scroll-indicator i { font-size: 1.5rem; }
+.scroll-indicator span { display: block; margin-top: 5px; font-size: 0.8rem; }
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% { transform: translate(-50%, 0); }
+    40% { transform: translate(-50%, -10px); }
+    60% { transform: translate(-50%, -5px); }
+}
+
+/* ==========================================================================
+   4. İçerik Bölümleri (Özellikler, Bot)
+   ========================================================================== */
+
+.content-section {
+    padding: 100px 50px;
+    opacity: 0;
+    transform: translateY(50px);
+    transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+}
+.content-section.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.section-title {
+    font-family: 'Raleway', sans-serif;
+    font-size: 3rem;
+    text-align: center;
+    margin-bottom: 60px;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+}
+.section-title i { color: var(--primary-green); }
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.feature-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    padding: 40px;
+    text-align: center;
+    border-radius: 10px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.feature-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 10px 30px rgba(106, 153, 78, 0.2);
+}
+.feature-card i {
+    font-size: 3rem;
+    color: var(--primary-green);
+    margin-bottom: 20px;
+}
+.feature-card h3 {
+    font-family: 'Raleway', sans-serif;
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+    color: white;
+}
+.feature-card p { color: var(--dark-text); line-height: 1.6; }
+
+.bot-section { background: rgba(0,0,0,0.2); }
+.bot-content {
+    display: flex;
+    align-items: center;
+    gap: 50px;
+    max-width: 1000px;
+    margin: 0 auto;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    padding: 50px;
+    border-radius: 10px;
+}
+.bot-text ul {
+    list-style: none;
+    margin: 20px 0;
+}
+.bot-text li {
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+}
+.bot-text i { color: var(--primary-green); margin-right: 10px; }
+.credit { margin-top: 30px; font-size: 1.1rem; }
+.credit strong { color: var(--primary-green); }
+.bot-icon { font-size: 10rem; color: var(--primary-green); opacity: 0.5; }
+
+/* ==========================================================================
+   5. Footer ve Mobil Uyumluluk
+   ========================================================================== */
+
+footer {
+    text-align: center;
+    padding: 30px;
+    background: var(--dark-bg);
+    border-top: 1px solid var(--card-border);
+    color: var(--dark-text);
+}
+
+/* Mobil Cihazlar için Kurallar */
+@media (max-width: 768px) {
+    header {
+        padding: 20px;
+    }
+
+    nav {
+        display: none; /* Mobilde menüyü gizle */
+    }
+
+    .hero h1 {
+        font-size: 2.5rem; /* Mobilde başlığı küçült */
+    }
+
+    .hero p {
+        font-size: 1rem;
+    }
+
+    .content-section {
+        padding: 80px 20px;
+    }
+
+    .section-title {
+        font-size: 2.2rem;
+    }
+
+    .bot-content {
+        flex-direction: column; /* Bot bölümünü dikey yap */
+        padding: 30px;
+        text-align: center;
+    }
+
+    .bot-icon {
+        font-size: 6rem;
+        margin-top: 30px;
+    }
+}
