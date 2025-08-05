@@ -29,12 +29,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Tüm kelimeler canlandı mı?
         if (revealedWordsCount >= totalWords) {
-            // Eğer durum 'animating' ise, 'finished' durumuna geçir.
             if (lockState === 'animating') {
                 lockState = 'finished';
             }
         } else {
-            // Eğer tüm kelimeler canlanmadıysa, durumun 'animating' olduğundan emin ol.
             lockState = 'animating';
             if (!body.classList.contains('scroll-locked')) {
                 body.classList.add('scroll-locked');
@@ -42,36 +40,77 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- FARE TEKERLEĞİ OLAY YÖNETİCİSİ ---
-    window.addEventListener('wheel', (event) => {
+    // --- YENİ: Ortak Kaydırma Mantığı İşleyicisi ---
+    function processScroll(direction) {
         // Animasyonun çok hızlı ilerlemesini engellemek için bir bekleme süresi koy.
         const now = Date.now();
-        if (now - lastAnimationTime < 50) { // 50 milisaniyeden daha hızlı tetiklenemez.
-            event.preventDefault(); // Engellenen kaydırmaların da varsayılan davranışı durdurulmalı.
+        if (now - lastAnimationTime < 50) { 
             return;
         }
-        
-        // Eğer durum 'animating' ise, animasyonu ilerlet.
-        if (lockState === 'animating') {
-            event.preventDefault(); // Sayfanın normal kaymasını engelle
-            lastAnimationTime = now;
+        lastAnimationTime = now;
 
-            if (event.deltaY > 0) { // Aşağı kaydırma
+        if (lockState === 'animating') {
+            if (direction === 'down') { // Aşağı kaydırma / Yukarı kaydırma (parmak)
                 if (revealedWordsCount < totalWords) revealedWordsCount++;
-            } else { // Yukarı kaydırma
+            } else { // Yukarı kaydırma / Aşağı kaydırma (parmak)
                 if (revealedWordsCount > 0) revealedWordsCount--;
             }
             updateWordAnimation();
-        } 
-        // Eğer durum 'finished' ise, bu ilk kaydırma kilidi açar.
-        else if (lockState === 'finished') {
-            event.preventDefault(); // Bu ilk kaydırmanın sayfayı hareket ettirmesini engelle.
+        }
+    }
+
+    // --- FARE TEKERLEĞİ OLAY YÖNETİCİSİ ---
+    window.addEventListener('wheel', (event) => {
+        if (lockState === 'unlocked') return;
+        event.preventDefault();
+
+        if (lockState === 'finished') {
             lockState = 'unlocked';
             body.classList.remove('scroll-locked');
+            return;
         }
-        // Eğer durum 'unlocked' ise, hiçbir şey yapma, tarayıcı normal kaydırsın.
+        
+        const direction = event.deltaY > 0 ? 'down' : 'up';
+        processScroll(direction);
 
-    }, { passive: false }); // event.preventDefault() kullanabilmek için bu gereklidir.
+    }, { passive: false });
+
+    // --- YENİ: DOKUNMATİK EKRAN OLAY YÖNETİCİLERİ ---
+    let touchStartY = 0;
+    let touchEndY = 0;
+
+    window.addEventListener('touchstart', (event) => {
+        if (lockState === 'unlocked') return;
+        // Dokunmanın başlangıç Y pozisyonunu kaydet
+        touchStartY = event.touches[0].clientY;
+    }, { passive: false });
+
+    window.addEventListener('touchmove', (event) => {
+        if (lockState === 'unlocked') return;
+        event.preventDefault(); // Dokunmatik kaydırmayı her zaman engelle
+        // Dokunmanın sonlandığı Y pozisyonunu sürekli güncelle
+        touchEndY = event.touches[0].clientY;
+    }, { passive: false });
+
+    window.addEventListener('touchend', () => {
+        if (lockState === 'unlocked') return;
+
+        // Eğer animasyon bittiyse, bu ilk dokunma kilidi açar.
+        if (lockState === 'finished') {
+            lockState = 'unlocked';
+            body.classList.remove('scroll-locked');
+            return;
+        }
+
+        // Başlangıç ve bitiş arasındaki farkı hesapla
+        const touchDelta = touchStartY - touchEndY;
+        
+        // Dokunma mesafesi yeterince büyükse (bir "swipe" ise) işlemi tetikle
+        if (Math.abs(touchDelta) > 50) { 
+            const direction = touchDelta > 0 ? 'down' : 'up';
+            processScroll(direction);
+        }
+    }, { passive: false });
 
 
     // Sayfa ilk yüklendiğinde animasyonun başlangıç durumunu ayarla
